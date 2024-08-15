@@ -1,0 +1,329 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Articles API",
+    "description": "This API is developed to create task management web application",
+    "version": "1.0.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "JWT": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  },
+  "paths": {
+    "/users/register": {
+      "post": {
+        "tags": ["Users"],
+        "description": "Creates new account of admin or user/team member. Enter valid admin Id for account type user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userName": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "accountType": {
+                    "type": "string"
+                  },
+                  "adminId": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": ["userName", "password", "accountType", "adminId"]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/users/login": {
+      "post": {
+        "tags": ["Users"],
+        "description": "Sign in and get JWT token for authorization",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userName": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["userName", "password"]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/tasks/add": {
+      "post": {
+        "tags": ["Tasks"],
+        "description": "Add new task. Task will be added by logged in user",
+        "security": [
+          {
+            "JWT": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": ["title", "status", "priority"]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/tasks/update": {
+      "put": {
+        "tags": ["Tasks"],
+        "description": "Add new task. Task will be added by logged in user",
+        "security": [
+          {
+            "JWT": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                "id":{
+                    "type":"number"
+                },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": "string"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              },
+              "required": ["id", "title", "status", "priority"]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/tasks/remove/{taskId}": {
+      "delete": {
+        "tags": ["Tasks"],
+        "description": "Delete task by task Id",
+        "security": [
+          {
+            "JWT": {}
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskId",
+            "required": true,
+            "type": "number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/tasks/user/{userId}": {
+      "get": {
+        "tags": ["Tasks"],
+        "description": "Return tasks by user id",
+        "security": [
+          {
+            "JWT": {}
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/tasks/team": {
+        "get": {
+          "tags": ["Tasks"],
+          "description": "Return tasks by admin id(only if logged in user is admin)",
+          "security": [
+            {
+              "JWT": {}
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok"
+            },
+            "400": {
+              "description": "Bad Request"
+            },
+            "500": {
+              "description": "Internal Server Error"
+            }
+          }
+        }
+    },
+    "/tasks/{taskId}/assign/{assigneeId}":{
+        "patch":{
+            "tags":["Tasks"],
+            "description":"Only admin can assign tasks to user/assignee",
+            "security":[
+                {
+                    "JWT":{}
+                }
+            ],
+            "parameters":[
+                {
+                    "in": "path",
+                    "name": "taskId",
+                    "required": true,
+                    "type": "number"
+                  },
+                  {
+                    "in": "path",
+                    "name": "assigneeId",
+                    "required": true,
+                    "type": "number"
+                  }
+            ], 
+            "responses": {
+                "200": {
+                  "description": "ok"
+                },
+                "404": {
+                  "description": "Not Found"
+                },
+                "500": {
+                  "description": "Internal Server Error"
+                }
+              }
+        }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+

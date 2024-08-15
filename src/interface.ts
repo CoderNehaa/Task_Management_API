@@ -29,12 +29,11 @@ export interface Task{
     description?:string,
     status:Status,
     priority:Priority,
-    startDate:Date,
-    updateDate:Date,
-    endDate:Date,
+    startDate?:Date,
+    updateDate?:Date,
+    endDate?:Date,
     creatorId:number,
-    assigneeId:number
+    assigneeId?:number
 }
 
 
-//by default, task is assigned to user who created task, but it can change by calling assign api

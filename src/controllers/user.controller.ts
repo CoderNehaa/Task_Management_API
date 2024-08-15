@@ -1,28 +1,29 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { UserModel } from "../models/user.model";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import { CustomError } from "../utils/custom-error";
+import * as jwt from "jsonwebtoken";
+import * as bcrypt from "bcrypt";
 
 export class UserController{
-    async register(req:Request, res:Response){
+    async register(req:Request, res:Response, next:NextFunction){
         try{
-            const adminId = parseInt(req.params.adminId);
-            const {account_type, username, password} = req.body;
+            const {account_type, username, password, adminId} = req.body;
+            
             if(account_type === "user"){
-                if(!adminId){
-                    return res.status(400).send({
-                        success:false,
-                        message:"Admin ID is required while creating user/team member account"
-                    })   
+                if(!adminId || typeof adminId !== "number"){ 
+                    throw new CustomError(400, "Admin ID is required while creating user/team member account")
                 }
 
                 const adminExists = await UserModel.getById(adminId);
                 if(!adminExists.success){
-                    return res.status(400).send({
-                        success:false,
-                        message:"No account exists with this admin Id. Enter valid id"
-                    })  
+                    throw new CustomError(400, 'No account exists with this admin ID. Enter a valid ID');
                 }
+            }
+
+            //username already exists
+            const usernameExists = await UserModel.usernameExists(username);
+            if(usernameExists){
+                throw new CustomError(400, 'Username already exists. Try a different username.');
             }
 
             const hashedPassword: string = await bcrypt.hash(password, 10);
@@ -32,26 +33,20 @@ export class UserController{
                 message:"User Registered successfully"
             });
         } catch (e){
-            console.log(e);
-            return res.status(500).send({
-                success:false,
-                message:"Failed to register user! Try later"
-            })   
+            next(e);
         }
     }
 
-    async signin(req:Request, res:Response){
+    async signin(req:Request, res:Response, next:NextFunction){
         try{
-            const {account_type, username, password} = req.body;
-            const user  = await UserModel.get(username, password);
-            if(!user.success){
-                return res.status(400).send({
-                    success:false,
-                    message:"Invalid credentials"
-                })
+            const {username, password} = req.body;
+            const data:any = await UserModel.get(username, password);
+            if(!data.success){
+                throw new CustomError(400, data.message);
             }
-
-            const token = jwt.sign({ userId: user.id, username: user.username }, "WG6oqviIhVwcCJKY1ZI5G0NKnaTB5uYb", {
+            const {user} = data;
+            
+            const token = jwt.sign({ userId: user.id, username: user.username }, "Dbx6aLgGlUXrK7VedFSDOL1bbuIZN0VY", {
                 expiresIn: "1h",
             });
             return res.status(200).send({
@@ -61,11 +56,7 @@ export class UserController{
                 token:token
             })
         } catch (e){
-            console.log(e);
-            return res.status(500).send({
-                success:false,
-                message:"Failed to register user! Try later"
-            })   
+            next(e);
         }
     }
     

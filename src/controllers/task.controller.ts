@@ -1,203 +1,178 @@
-import { Request, Response } from "express";
-import { Task } from "../interface";
+import { NextFunction, Request, Response } from "express";
+import { Task as TaskInterface } from "../interface";
 import { TaskModel } from "../models/task.model";
 import { UserModel } from "../models/user.model";
+import { CustomError } from "../utils/custom-error";
 
-export class TaskController{
-    async add(req:Request, res:Response){
-        try{
-            const task: Task = req.body;
+export class TaskController {
+    async add(req: Request, res: Response) {
+        try {
+            const { title,description, status, priority, user } = req.body;
+            
+            const task: TaskInterface = {
+                title,
+                description,
+                status,
+                priority,
+                creatorId: user.id
+            };
 
             if (!task.title || !task.creatorId || !task.status) {
                 return res.status(400).send({
-                  result: false,
-                  message: "Title, userId, and status are required fields.",
+                    success: false,
+                    message: "Title, creatorId, and status are required fields.",
                 });
-              }
+            }
 
-              await TaskModel.create(task);              
+            const result = await TaskModel.create(task);
+            if (!result.success) {
+                return res.status(400).send(result);
+            }
+
             return res.status(200).send({
-                success:true,
-                message:"Task added successfully"
-            })
-        } catch (e){
+                success: true,
+                message: "Task added successfully"
+            });
+        } catch (e) {
             console.log(e);
             return res.status(500).send({
-                success:false,
-                message:"Failed to add task! try later"
-            })
+                success: false,
+                message: "Failed to add task! Try later"
+            });
         }
     }
 
-    async update(req:Request, res:Response){
-        try{
-            const task: Task = req.body;
-
-            if (!task.id || !task.title || !task.creatorId || !task.status) {
+    async update(req: Request, res: Response) {
+        try {
+            const {id, title, description, status, endDate, priority, user} = req.body;
+            const updateDate = new Date();
+            const task:TaskInterface= {
+                id, creatorId:user.id, title, description, status, endDate, updateDate, priority
+            }
+            
+            if (!id || !title || !status) {
                 return res.status(400).send({
-                  result: false,
-                  message: "Task id, title, userId, and status are required fields.",
+                    success: false,
+                    message: "Task id, title, and status are required fields.",
                 });
-              }
+            }
 
-              const taskExists = await TaskModel.getById(task.id);
-              if(!taskExists.result){
-                return res.status(400).send({
-                    result: false,
-                    message: "Task does not exist",
-                  });
-              }
-              
-              await TaskModel.update(task);              
-            return res.status(500).send({
-                success:true,
-                message:"Task updated successfully"
-            })
-        } catch (e){
+            const result = await TaskModel.update(task);
+            if (!result.success) {
+                return res.status(400).send(result);
+            }
+
+            return res.status(200).send({
+                success: true,
+                message: "Task updated successfully",
+                task: result.task
+            });
+        } catch (e) {
             console.log(e);
             return res.status(500).send({
-                success:false,
-                message:"Failed to add task! try later"
-            })
+                success: false,
+                message: "Failed to update task! Try later"
+            });
         }
-    }    
-    
-    async delete(req:Request, res:Response){
-        try{
-            const taskId:number = parseInt(req.params.taskId);
+    }
+
+    async delete(req: Request, res: Response) {
+        try {
+            const taskId: number = parseInt(req.params.taskId);
 
             if (!taskId) {
                 return res.status(400).send({
-                  result: false,
-                  message: "Task id is required",
+                    success: false,
+                    message: "Task id is required",
                 });
-              }
+            }
 
-              const taskExists = await TaskModel.getById(taskId);
-              if(!taskExists.result){
-                return res.status(400).send({
-                    result: false,
-                    message: "Task does not exist",
-                  });
-              }
-                          
-              await TaskModel.delete(taskId);
-            return res.status(200).send({
-                success:true,
-                message:"Task deleted successfully"
-            })
-        } catch (e){
+            const result = await TaskModel.delete(taskId);
+            if (!result.success) {
+                return res.status(400).send(result);
+            }
+
+            return res.status(200).send(result);
+        } catch (e) {
             console.log(e);
             return res.status(500).send({
-                success:false,
-                message:"Failed to delete task! try later"
-            })
+                success: false,
+                message: "Failed to delete task! Try later"
+            });
         }
     }
 
-    //user see its own created tasks, both user and admin
-    async getTasksByUserId(req:Request, res:Response){
-       try{
-            const userId:number = parseInt(req.params.userId);
-
+    //it will return task which are created by this given userId
+    async getTasksByUserId(req: Request, res: Response) {
+        try {
+            const userId: number = parseInt(req.params.userId);
             if (!userId) {
                 return res.status(400).send({
-                  result: false,
-                  message: "user id is required",
+                    success: false,
+                    message: "User id is required",
                 });
-              }
+            }
 
-              const userExists = await UserModel.getById(userId);
-              if(!userExists.result){
+            const userExists = await UserModel.getById(userId);
+            if (!userExists.success) {
                 return res.status(400).send({
-                    result: false,
-                    message: "User does not exist",
-                  });
-              }
-                          
-              const tasks = await TaskModel.getByUserId(userId);
-            return res.status(200).send({
-                success:true,
-                data:tasks
-            })
-        } catch (e){
+                    success: false,
+                    message: !userExists.message,
+                });
+            }
+
+            const result = await TaskModel.getByUserId(userId);
+            if (!result.success) {
+                return res.status(400).send(result);
+            }
+
+            return res.status(200).send(result);
+        } catch (e) {
             console.log(e);
             return res.status(500).send({
-                success:false,
-                message:"Failed to get user tasks! try later"
-            })
+                success: false,
+                message: "Failed to get user tasks! Try later"
+            });
         }
     }
 
-    //if logged in user is admin, only then, admin can see task of all team members
-    async getTeamTasks(req:Request, res:Response){
-        try{
-            const user = req.user;
-            if(user.account_type==="user"){
-                return res.status(400).send({
-                    result: false,
-                    message: "Logged in user is not admin. only admin can access this information.",
-                });
+    async getTeamTasks(req: Request, res: Response, next:NextFunction) {
+        try {
+            const {user} = req.body;
+            if(user.account_type!=="admin"){
+                throw new CustomError(400, "Only admin can access this data. Logged in user is not admin");
             }
 
-            const adminId:number = user.id;                           
-            const tasks = await TaskModel.getByAdminId(adminId);
-            return res.status(200).send({
-                success:true,
-                data:tasks
-            });
-         } catch (e){
-             console.log(e);
-             return res.status(500).send({
-                 success:false,
-                 message:"Failed to get user tasks! try later"
-             })
-         }
+            const result = await TaskModel.getByAdminId(user.id);
+            if (!result.success) {
+                throw new CustomError(400, result.message);
+            }
+
+            return res.status(200).send({success:true, data:result.tasks});
+        } catch (e) {
+            next(e);
+        }
     }
 
-    //if logged in user is admin, only then, admin can assign tasks
-    async assignTasks(req:Request, res:Response){
-        try{
-            const taskId = parseInt(req.params.taskId);
-            const userId = parseInt(req.params.userId);
-
-            const user = req.user;
-            if(user.account_type==="user"){
-                return res.status(400).send({
-                    result: false,
-                    message: "Logged in user is not admin. only admin can assign tasks.",
-                });
+    async assignTasks(req: Request, res: Response, next:NextFunction) {
+        try {
+            const taskId: number = parseInt(req.params.taskId);
+            const assigneeId: number = parseInt(req.params.assigneeId);
+            
+            const {user} = req.body;
+            if (user.account_type === "user") {
+                throw new CustomError(400, "Logged in user is not admin. Only admin can assign tasks.");
             }
 
-            const taskExists = await TaskModel.getById(taskId);
-            if(!taskExists.result){
-            return res.status(400).send({
-                result: false,
-                message: "Task does not exist",
-                });
-            }     
-            
-            const userExists = await UserModel.getById(userId);
-            if(!userExists.result){
-            return res.status(400).send({
-                result: false,
-                message: "No account found with the id given for new assignee of task",
-                });
-            }        
-            
-            await TaskModel.assignTask(taskId, userId)
-            return res.status(200).send({
-                success:true,
-                message:"Task assigned to new user!"
-            });
-         } catch (e){
-             console.log(e);
-             return res.status(500).send({
-                 success:false,
-                 message:"Failed to get user tasks! try later"
-             })
-         }
+            const result = await TaskModel.assignTask(taskId, assigneeId);
+            if (!result.success) {
+                throw new CustomError(400, result.message);
+            }
+
+            return res.status(200).send({success:true, message:"Task assigned successfully"});
+        } catch (e) {
+            console.log(e);
+            next(e);
+        }
     }
 }
-
-

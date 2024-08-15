@@ -10,5 +10,7 @@ taskRouter.put('/update', authMiddleware, taskController.update);
 taskRouter.delete('/remove/:taskId', authMiddleware, taskController.delete);
 taskRouter.get('/user/:userId', authMiddleware, taskController.getTasksByUserId);
 taskRouter.get('/team', authMiddleware, taskController.getTeamTasks);
-taskRouter.patch('/:taskId/assign/:userId', authMiddleware, taskController.assignTasks);
+taskRouter.patch('/:taskId/assign/:assigneeId', authMiddleware, taskController.assignTasks);
+
+export default taskRouter
 
